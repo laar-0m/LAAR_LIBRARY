@@ -1,36 +1,35 @@
-# This is a basic workflow to help you get started with Actions
 
-name: CI
+name: Build LAAR LIBRARY VST3
 
-# Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the "main" branch
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
+  push:
+    paths:
+      - "LAAR_LIBRARY_Windows_Build_Kit.zip"
+      - ".github/workflows/blank.yml"
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
   build:
-    # The type of runner that the job will run on
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v4
+      - name: Download repository
+        uses: actions/checkout@v4
 
-      # Runs a single command using the runners shell
-      - name: Run a one-line script
-        run: echo Hello, world!
-
-      # Runs a set of commands using the runners shell
-      - name: Run a multi-line script
+      - name: Extract plugin source
+        shell: pwsh
         run: |
-          echo Add other actions to build,
-          echo test, and deploy your project.
+          Expand-Archive -Path "LAAR_LIBRARY_Windows_Build_Kit.zip" -DestinationPath "package" -Force
+
+      - name: Configure plugin
+        run: cmake -S package -B package/build -A x64
+
+      - name: Compile VST3
+        run: cmake --build package/build --config Release
+
+      - name: Upload VST3
+        uses: actions/upload-artifact@v4
+        with:
+          name: LAAR-LIBRARY-VST3
+          path: package/build/LaarLibrary_artefacts/Release/VST3/
+          if-no-files-found: error
